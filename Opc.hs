@@ -69,12 +69,13 @@ frame :: Frame
 frame = SetColors 0 $ replicate 50 $ Pixel 255 255 255
 
 main = do
-  ai <- getAddrInfo Nothing (Just "localhost") (Just "7890")
+  ai <- getAddrInfo Nothing (Just "127.0.0.1" {- "localhost" -}) (Just "7890")
   let addr = addrAddress $ head ai
       fam (SockAddrInet {}) = AF_INET
       fam (SockAddrInet6 {}) = AF_INET6
       fam sa = error $ "Unexpected socket family: " ++ show sa
   s <- socket (fam addr) Stream defaultProtocol
+  -- putStrLn $ show addr
   connect s addr
   let bs = encode frame
   sendMany s (L.toChunks bs)
