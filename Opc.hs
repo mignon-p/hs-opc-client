@@ -3,7 +3,10 @@ import Control.Monad
 import Data.Binary
 import Data.Binary.Put
 import Data.Binary.Get
+import qualified Data.ByteString.Lazy as L
 import Data.Word
+import Network.Socket
+import Network.Socket.ByteString
 
 data Frame = SetColors
              { fChannel :: !Word8
@@ -45,7 +48,7 @@ instance Binary Frame where
     cmd <- getWord8
     len <- getWord16be
     case cmd of
-      cmdSetColors -> do
+      0 {- cmdSetColors -} -> do
         let (nPix, extra) = len `divMod` 3
         pix <- replicateM (fromIntegral nPix) get
         skip (fromIntegral extra)
@@ -62,4 +65,12 @@ instance Binary Pixel where
 
   get = Pixel <$> getWord8 <*> getWord8 <*> getWord8
 
-main = putStrLn "Hello World"
+frame :: Frame
+frame = SetColors 0 $ replicate 50 $ Pixel 255 255 255
+
+main = do
+  s <- socket AF_INET6 Stream defaultProtocol
+  ai <- getAddrInfo Nothing (Just "localhost") Nothing
+  connect s $ addrAddress $ head ai
+  let bs = encode frame
+  sendMany s (L.toChunks bs)
