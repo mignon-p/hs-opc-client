@@ -57,7 +57,7 @@ executable open-pixel-control
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
-  build-depends:       base   >= 4.7 && < 5
+  build-depends:       base   >= 4.6 && < 5
                      , binary >= 0.7 && < 0.8
                      , bytestring
                      , network
