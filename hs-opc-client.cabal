@@ -22,7 +22,7 @@ description:         A simple example of how to talk to an Open Pixel Control
                      the lights on the string to that color.
 
 -- The license under which the package is released.
-license:             BSD3
+license:             PublicDomain
 
 -- The file containing the license text.
 license-file:        LICENSE
