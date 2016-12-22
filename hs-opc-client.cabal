@@ -16,7 +16,10 @@ version:             0.1.0.0
 synopsis:            Haskell client for OpenPixelControl
 
 -- A longer description of the package.
--- description:
+description:         A simple example of how to talk to an Open Pixel Control
+                     server from Haskell.  This example client takes a color
+                     name or RGB triple on the command line, and sets all
+                     the lights on the string to that color.
 
 -- The license under which the package is released.
 license:             BSD3
@@ -59,8 +62,8 @@ executable hs-opc-client
   -- Other library packages from which modules are imported.
   build-depends:       base   >= 4.6 && < 5
                      , binary >= 0.7 && < 0.8
-                     , bytestring
-                     , network
+                     , bytestring >= 0.10.0.2 && < 0.11
+                     , network >= 2.4.2.3 && < 2.7
 
   -- Directories containing source files.
   -- hs-source-dirs:
