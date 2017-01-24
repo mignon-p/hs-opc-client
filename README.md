@@ -5,8 +5,11 @@ strings of RGB LED lights.
 If run with no arguments, `hs-opc-client` sets the string color to all
 white.  If run with one argument, the argument must be one of the
 color names black, blue, cyan, green, magenta, orange, purple, red,
-white, or yellow.  If run with three arguments, each argument must be
-an integer between 0-255, forming an RGB triple.
+white, yellow, or random.  If run with three arguments, each argument
+must be an integer between 0-255, forming an RGB triple.
+
+Various command-line options exist for setting the server to connect
+to, setting the brightness, etc.  For details, run with `--help`.
 
 For more information, see [my blog post][3].
 
