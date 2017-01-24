@@ -73,9 +73,6 @@ instance Binary Pixel where
 
   get = Pixel <$> getWord8 <*> getWord8 <*> getWord8
 
-mkFrame :: Int -> [Pixel] -> Frame
-mkFrame n c = SetColors 0 $ take n c
-
 black = Pixel 0 0 0
 blue = Pixel 0 0 255
 cyan = Pixel 0 255 255
@@ -117,6 +114,7 @@ data Opts = Opts
   { hostname  :: String
   , port      :: String
   , nLights   :: Int
+  , channel   :: Word8
   , arguments :: [String]
   }
 
@@ -138,11 +136,18 @@ opts = Opts
                    help ("number of lights on the string (default "
                          ++ show defLength ++ ")") <>
                    value defLength)
+  <*> option auto (long "channel" <>
+                   short 'c' <>
+                   metavar "INTEGER" <>
+                   help ("Open Pixel Control channel number (default "
+                         ++ show defChannel ++ ")") <>
+                   value defChannel)
   <*> some (argument str (metavar "ARGS..."))
   where
     defServer = "127.0.0.1"
     defPort = "7890"
     defLength = 512             -- max number of lights on a FadeCandy
+    defChannel = 0
 
 opts' = info (helper <*> opts)
   ( fullDesc <>
@@ -181,7 +186,7 @@ main = do
       fam sa = error $ "Unexpected socket family: " ++ show sa
   s <- socket (fam addr) Stream defaultProtocol
   connect s addr
-  let f = mkFrame (nLights o) color
+  let f = SetColors (channel o) $ take (nLights o) color
   sendFrame s f
   -- send frame twice to defeat FadeCandy's fade logic; we want immediate results!
   sendFrame s f
