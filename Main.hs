@@ -155,7 +155,7 @@ opts = Opts
                    help ("Percentage of maximum brightness (default "
                          ++ show defBrightness ++ ", range 0-100)") <>
                    value defBrightness)
-  <*> some (argument str (metavar "ARGS..."))
+  <*> many (argument str (metavar "ARGS..."))
   where
     defServer = "127.0.0.1"
     defPort = "7890"
