@@ -65,6 +65,7 @@ executable hs-opc-client
                      , bytestring >= 0.10.0.2 && < 0.11
                      , network >= 2.4.2.3 && < 2.7
                      , random >= 1.0.1.1 && < 1.2
+                     , optparse-applicative >= 0.13 && < 0.14
 
   -- Directories containing source files.
   -- hs-source-dirs:

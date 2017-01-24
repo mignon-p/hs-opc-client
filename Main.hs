@@ -7,9 +7,11 @@ import Data.Binary.Put
 import Data.Binary.Get
 import qualified Data.ByteString.Lazy as L
 import Data.Fixed (mod')
+import Data.Monoid
 import Data.Word
 import Network.Socket
 import Network.Socket.ByteString
+import Options.Applicative
 import System.Environment
 import System.Exit
 import System.Random
@@ -113,9 +115,40 @@ fromHue h = fromHSB h 1.0 1.0
 randomLites :: StdGen -> [Pixel]
 randomLites g = map fromHue $ randomRs (0, 360) g
 
+data Opts = Opts
+  { hostname  :: String
+  , port      :: String
+  , arguments :: [String]
+  }
+
+opts :: Parser Opts
+opts = Opts
+  <$> strOption (long "server" <>
+                 short 's' <>
+                 metavar "HOSTNAME" <>
+                 help ("server to connect to (default " ++ defServer ++ ")") <>
+                 value defServer)
+  <*> strOption (long "port" <>
+                 short 'p' <>
+                 metavar "INTEGER" <>
+                 help ("port number to connect to (default " ++ defPort ++ ")") <>
+                 value defPort)
+  <*> some (argument str (metavar "ARGS..."))
+  where
+    defServer = "127.0.0.1"
+    defPort = "7890"
+
+opts' = info (helper <*> opts)
+  ( fullDesc <>
+    progDesc ("ARGS is three integer arguments between 0-255, " ++
+              "or is a single argument which must be one of: " ++
+              "black, blue, cyan, green, magenta, orange, purple, " ++
+              "red, white, yellow, or random") <>
+    header "hs-opc-client - Open Pixel Control test client" )
+
 main = do
-  args <- getArgs
-  color <- case args of
+  o <- execParser opts'
+  color <- case (arguments o) of
              []          -> return $ repeat white
              ["black"]   -> return $ repeat black
              ["blue"]    -> return $ repeat blue
@@ -135,7 +168,7 @@ main = do
                putStrLn "    or random"
                putStrLn "Or three integer arguments between 0-255"
                exitFailure
-  ai <- getAddrInfo Nothing (Just "127.0.0.1" {- "localhost" -}) (Just "7890")
+  ai <- getAddrInfo Nothing (Just $ hostname o) (Just $ port o)
   let addr = addrAddress $ head ai
       fam (SockAddrInet {}) = AF_INET
       fam (SockAddrInet6 {}) = AF_INET6
