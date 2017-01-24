@@ -1,14 +1,18 @@
+{-# LANGUAGE MultiWayIf #-}
+
 import Control.Applicative
 import Control.Monad
 import Data.Binary
 import Data.Binary.Put
 import Data.Binary.Get
 import qualified Data.ByteString.Lazy as L
+import Data.Fixed (mod')
 import Data.Word
 import Network.Socket
 import Network.Socket.ByteString
 import System.Environment
 import System.Exit
+import System.Random
 
 data Frame = SetColors
              { fChannel :: !Word8
@@ -69,8 +73,8 @@ instance Binary Pixel where
 
 nLights = 512                   -- max number of lights on a FadeCandy
 
-mkFrame :: Pixel -> Frame
-mkFrame c = SetColors 0 $ replicate nLights c
+mkFrame :: [Pixel] -> Frame
+mkFrame c = SetColors 0 $ take nLights c
 
 black = Pixel 0 0 0
 blue = Pixel 0 0 255
@@ -86,24 +90,49 @@ yellow = Pixel 255 255 0
 sendFrame :: Socket -> Frame -> IO ()
 sendFrame s f = sendMany s $ L.toChunks $ encode f
 
+-- https://en.wikipedia.org/wiki/HSL_and_HSV#From_HSV
+fromHSB :: Double -> Double -> Double -> Pixel
+fromHSB h s v =
+  let c = v * s
+      h' = h / 60
+      x = c * (1 - abs (h' `mod'` 2 - 1))
+      (r1, g1, b1) = if | h' < 1 -> (c, x, 0)
+                        | h' < 2 -> (x, c, 0)
+                        | h' < 3 -> (0, c, x)
+                        | h' < 4 -> (0, x, c)
+                        | h' < 5 -> (x, 0, c)
+                        | otherwise -> (c, 0, x)
+      m = v - c
+      (r, g, b) = (r1 + m, g1 + m, b1 + m)
+      mk255 n = round $ n * 255
+  in Pixel (mk255 r) (mk255 g) (mk255 b)
+
+fromHue :: Double -> Pixel
+fromHue h = fromHSB h 1.0 1.0
+
+randomLites :: StdGen -> [Pixel]
+randomLites g = map fromHue $ randomRs (0, 360) g
+
 main = do
   args <- getArgs
   color <- case args of
-             []          -> return white
-             ["black"]   -> return black
-             ["blue"]    -> return blue
-             ["cyan"]    -> return cyan
-             ["green"]   -> return green
-             ["magenta"] -> return magenta
-             ["orange"]  -> return orange
-             ["purple"]  -> return purple
-             ["red"]     -> return red
-             ["white"]   -> return white
-             ["yellow"]  -> return yellow
-             [r, g, b]   -> return $ Pixel (read r) (read g) (read b)
+             []          -> return $ repeat white
+             ["black"]   -> return $ repeat black
+             ["blue"]    -> return $ repeat blue
+             ["cyan"]    -> return $ repeat cyan
+             ["green"]   -> return $ repeat green
+             ["magenta"] -> return $ repeat magenta
+             ["orange"]  -> return $ repeat orange
+             ["purple"]  -> return $ repeat purple
+             ["red"]     -> return $ repeat red
+             ["white"]   -> return $ repeat white
+             ["yellow"]  -> return $ repeat yellow
+             ["random"]  -> randomLites <$> newStdGen
+             [r, g, b]   -> return $ repeat $ Pixel (read r) (read g) (read b)
              _ -> do
                putStrLn "Argument must be one of:"
-               putStrLn "    black, blue, cyan, green, magenta, orange, purple, red, white, yellow"
+               putStrLn "    black, blue, cyan, green, magenta, orange, purple, red, white, yellow,"
+               putStrLn "    or random"
                putStrLn "Or three integer arguments between 0-255"
                exitFailure
   ai <- getAddrInfo Nothing (Just "127.0.0.1" {- "localhost" -}) (Just "7890")
