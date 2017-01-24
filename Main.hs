@@ -110,11 +110,18 @@ fromHue h = fromHSB h 1.0 1.0
 randomLites :: StdGen -> [Pixel]
 randomLites g = map fromHue $ randomRs (0, 360) g
 
+applyBrightness :: Double -> Pixel -> Pixel
+applyBrightness br (Pixel r g b) =
+  Pixel (scale r) (scale g) (scale b)
+  where scale x = round $ br' * fromIntegral x
+        br' = min 1.0 $ max 0.0 $ br / 100.0
+
 data Opts = Opts
   { hostname  :: String
   , port      :: String
   , nLights   :: Int
   , channel   :: Word8
+  , brightness :: Double
   , arguments :: [String]
   }
 
@@ -142,12 +149,19 @@ opts = Opts
                    help ("Open Pixel Control channel number (default "
                          ++ show defChannel ++ ")") <>
                    value defChannel)
+  <*> option auto (long "brightness" <>
+                   short 'b' <>
+                   metavar "PERCENT" <>
+                   help ("Percentage of maximum brightness (default "
+                         ++ show defBrightness ++ ", range 0-100)") <>
+                   value defBrightness)
   <*> some (argument str (metavar "ARGS..."))
   where
     defServer = "127.0.0.1"
     defPort = "7890"
     defLength = 512             -- max number of lights on a FadeCandy
     defChannel = 0
+    defBrightness = 100
 
 opts' = info (helper <*> opts)
   ( fullDesc <>
@@ -186,7 +200,9 @@ main = do
       fam sa = error $ "Unexpected socket family: " ++ show sa
   s <- socket (fam addr) Stream defaultProtocol
   connect s addr
-  let f = SetColors (channel o) $ take (nLights o) color
+  let f = SetColors (channel o)
+          $ map (applyBrightness $ brightness o)
+          $ take (nLights o) color
   sendFrame s f
   -- send frame twice to defeat FadeCandy's fade logic; we want immediate results!
   sendFrame s f
